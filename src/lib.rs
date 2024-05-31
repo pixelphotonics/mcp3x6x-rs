@@ -8,7 +8,8 @@
 
 #![cfg_attr(not(test), no_std)]
 
-use config::{Config, IRQMode, Register, RegisterMux};
+use config::{IRQMode, Register, RegisterMux};
+pub use config::{Channel, Config};
 use embedded_hal::spi::SpiDevice;
 
 pub mod config;
