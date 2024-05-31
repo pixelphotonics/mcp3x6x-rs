@@ -36,44 +36,13 @@ impl<const SHIFT: u8> BoolBitfield<SHIFT> {
 
 pub trait Register {
     const WRTIABLE: bool = true;
-    const FIXED_SIZE: bool = true;
 
     fn address() -> u8;
     fn size() -> usize;
-    fn bitsize() -> usize {
-        Self::size() * 8
-    }
 
     fn to_bytes(&self, out: &mut [u8]);
     fn try_from_bytes(bytes: &[u8]) -> Option<Self> where Self: Sized;
 }
-
-pub(crate) struct RegisterAdcData;
-
-impl Register for RegisterAdcData {
-    const WRTIABLE: bool = false;
-    const FIXED_SIZE: bool = false;
-
-    fn address() -> u8 {
-        0x00
-    }
-
-    fn size() -> usize {
-        // The maximum size of this register is 4 byte, but it can differ. Therefore, prevent this funcion from being called.
-        unreachable!()
-    }
-    
-    fn to_bytes(&self, out: &mut [u8]) {
-        // This function should never be called
-        unreachable!()
-    }
-    
-    fn try_from_bytes(bytes: &[u8]) -> Option<Self> where Self: Sized {
-        unreachable!()
-    }
-}
-
-
 
 
 #[repr(u8)]

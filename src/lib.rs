@@ -234,7 +234,8 @@ impl<SPI: SpiDevice> MCP356x<SPI> {
             _ => 4,
         };
         
-        self.spi.transfer(&mut read_buffer[0..register_length+1], &[self.command_byte::<config::RegisterAdcData>(Command::StaticRead)]).map_err(Error::SPIError)?;
+        let cmd_byte = [Command::StaticRead.to_byte() | self.addr.cmd_byte() | (0x0 << 2)];
+        self.spi.transfer(&mut read_buffer[0..register_length+1], &cmd_byte).map_err(Error::SPIError)?;
         let status_byte = StatusByte(read_buffer[0]);
         if !status_byte.is_data_ready() {
             return Err(Error::DataNotReady);
