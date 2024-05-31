@@ -182,27 +182,24 @@ impl RegisterConfig0 {
         VoltageReference::get(self.0)
     }
 
-    pub fn set_voltage_reference(mut self, voltage_reference: VoltageReference) -> Self {
+    pub fn set_voltage_reference(&mut self, voltage_reference: VoltageReference) {
         voltage_reference.set(&mut self.0);
-        self
     }
 
     pub fn clock_selection(&self) -> ClockSelection {
         ClockSelection::get(self.0)
     }
 
-    pub fn set_clock_selection(mut self, clock_selection: ClockSelection) -> Self {
+    pub fn set_clock_selection(&mut self, clock_selection: ClockSelection) {
         clock_selection.set(&mut self.0);
-        self
     }
 
     pub fn current_source(&self) -> CurrentSource {
         CurrentSource::get(self.0)
     }
 
-    pub fn set_current_source(mut self, current_source: CurrentSource) -> Self {
+    pub fn set_current_source(&mut self, current_source: CurrentSource) {
         current_source.set(&mut self.0);
-        self
     }
 
     pub fn adc_mode(&self) -> AdcMode {
@@ -338,18 +335,16 @@ impl RegisterConfig1 {
         PrescalerValue::get(self.0)
     }
 
-    pub fn set_prescaler_value(mut self, prescaler_value: PrescalerValue) -> Self {
+    pub fn set_prescaler_value(&mut self, prescaler_value: PrescalerValue) {
         prescaler_value.set(&mut self.0);
-        self
     }
 
     pub fn oversampling_ratio(&self) -> OversamplingRatio {
         OversamplingRatio::get(self.0)
     }
 
-    pub fn set_oversampling_ratio(mut self, oversampling_ratio: OversamplingRatio) -> Self {
+    pub fn set_oversampling_ratio(&mut self, oversampling_ratio: OversamplingRatio) {
         oversampling_ratio.set(&mut self.0);
-        self
     }
 }
 
@@ -510,36 +505,32 @@ impl RegisterConfig2 {
         BoostMode::get(self.0)
     }
 
-    pub fn set_boost_mode(mut self, boost_mode: BoostMode) -> Self {
+    pub fn set_boost_mode(&mut self, boost_mode: BoostMode) {
         boost_mode.set(&mut self.0);
-        self
     }
 
     pub fn gain(&self) -> Gain {
         Gain::get(self.0)
     }
 
-    pub fn set_gain(mut self, gain: Gain) -> Self {
+    pub fn set_gain(&mut self, gain: Gain) {
         gain.set(&mut self.0);
-        self
     }
 
     pub fn auto_zeroing(&self) -> AutoZeroing {
         AutoZeroing::get(self.0)
     }
 
-    pub fn set_auto_zeroing(mut self, auto_zeroing: AutoZeroing) -> Self {
+    pub fn set_auto_zeroing(&mut self, auto_zeroing: AutoZeroing) {
         auto_zeroing.set(&mut self.0);
-        self
     }
 
     pub fn auto_zero_reference(&self) -> AutoZeroReference {
         AutoZeroReference::get(self.0)
     }
 
-    pub fn set_auto_zero_reference(mut self, auto_zero_reference: AutoZeroReference) -> Self {
+    pub fn set_auto_zero_reference(&mut self, auto_zero_reference: AutoZeroReference) {
         auto_zero_reference.set(&mut self.0);
-        self
     }
 }
 
@@ -715,45 +706,40 @@ impl RegisterConfig3 {
         ConversionMode::get(self.0)
     }
 
-    pub fn set_conversion_mode(mut self, conversion_mode: ConversionMode) -> Self {
+    pub fn set_conversion_mode(&mut self, conversion_mode: ConversionMode) {
         conversion_mode.set(&mut self.0);
-        self
     }
 
     pub fn data_format(&self) -> DataFormat {
         DataFormat::get(self.0)
     }
 
-    pub fn set_data_format(mut self, data_format: DataFormat) -> Self {
+    pub fn set_data_format(&mut self, data_format: DataFormat) {
         data_format.set(&mut self.0);
-        self
     }
 
     pub fn crc_read(&self) -> CRCRead {
         CRCRead::get(self.0)
     }
 
-    pub fn set_crc_read(mut self, crc_read: CRCRead) -> Self {
+    pub fn set_crc_read(&mut self, crc_read: CRCRead) {
         crc_read.set(&mut self.0);
-        self
     }
 
     pub fn digital_offset_calibration(&self) -> DigitalOffsetCalibration {
         DigitalOffsetCalibration::get(self.0)
     }
 
-    pub fn set_digital_offset_calibration(mut self, digital_offset_calibration: DigitalOffsetCalibration) -> Self {
+    pub fn set_digital_offset_calibration(&mut self, digital_offset_calibration: DigitalOffsetCalibration) {
         digital_offset_calibration.set(&mut self.0);
-        self
     }
 
     pub fn digital_gain_calibration(&self) -> DigitalGainCalibration {
         DigitalGainCalibration::get(self.0)
     }
 
-    pub fn set_digital_gain_calibration(mut self, digital_gain_calibration: DigitalGainCalibration) -> Self {
+    pub fn set_digital_gain_calibration(&mut self, digital_gain_calibration: DigitalGainCalibration) {
         digital_gain_calibration.set(&mut self.0);
-        self
     }
 }
 
@@ -839,27 +825,24 @@ impl RegisterIRQ {
         EnFastCmd::get(self.0).0
     }
 
-    pub fn set_fast_commands_enabled(mut self, enable: bool) -> Self {
+    pub fn set_fast_commands_enabled(&mut self, enable: bool){
         EnFastCmd::new(enable).set(&mut self.0);
-        self
     }
 
     pub fn start_interrupt_output_enabled(&self) -> bool {
         EnSTP::get(self.0).0
     }
 
-    pub fn set_start_interrupt_output_enabled(mut self, enable: bool) -> Self {
+    pub fn set_start_interrupt_output_enabled(&mut self, enable: bool) {
         EnSTP::new(enable).set(&mut self.0);
-        self
     }
 
     pub fn irq_mode(&self) -> IRQMode {
         IRQMode::get(self.0)
     }
 
-    pub fn set_irq_mode(mut self, irq_mode: IRQMode) -> Self {
+    pub fn set_irq_mode(&mut self, irq_mode: IRQMode) {
         irq_mode.set(&mut self.0);
-        self
     }
 }
 
@@ -1184,9 +1167,8 @@ impl RegisterScan {
         ScanDelayTime::get(self.0[2])
     }
 
-    pub fn set_scan_delay_time(mut self, scan_delay_time: ScanDelayTime) -> Self {
+    pub fn set_scan_delay_time(&mut self, scan_delay_time: ScanDelayTime) {
         scan_delay_time.set(&mut self.0[2]);
-        self
     }
 }
 
