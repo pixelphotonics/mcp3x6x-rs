@@ -46,19 +46,6 @@ pub enum Error<E> {
 }
 
 
-pub enum Channel {
-    Channel0,
-    Channel1,
-    Channel2,
-    Channel3,
-    Channel4,
-    Channel5,
-    Channel6,
-    Channel7,
-}
-
-
-
 /// The hard-coded device address. The factory default is 0b01,
 /// but other addresses are available upon request from Microchip.
 pub enum DeviceAddress {

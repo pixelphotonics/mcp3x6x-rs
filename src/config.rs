@@ -1,6 +1,4 @@
 
-use super::Channel;
-
 trait BitField: Sized {
     const MASK: u8;
     const SHIFT: u8;
@@ -922,17 +920,18 @@ pub enum MuxSelection {
 }
 
 impl MuxSelection {
-    pub fn from_channel(channel: Channel) -> Self {
-        match channel {
-            Channel::Channel0 => MuxSelection::Channel0,
-            Channel::Channel1 => MuxSelection::Channel1,
-            Channel::Channel2 => MuxSelection::Channel2,
-            Channel::Channel3 => MuxSelection::Channel3,
-            Channel::Channel4 => MuxSelection::Channel4,
-            Channel::Channel5 => MuxSelection::Channel5,
-            Channel::Channel6 => MuxSelection::Channel6,
-            Channel::Channel7 => MuxSelection::Channel7,
-        }
+    pub fn try_from_channel_num(channel: u8) -> Option<Self> {
+        Some(match channel {
+            0 => MuxSelection::Channel0,
+            1 => MuxSelection::Channel1,
+            2 => MuxSelection::Channel2,
+            3 => MuxSelection::Channel3,
+            4 => MuxSelection::Channel4,
+            5 => MuxSelection::Channel5,
+            6 => MuxSelection::Channel6,
+            7 => MuxSelection::Channel7,
+            _ => return None,
+        })
     }
 
     fn try_from_byte(byte: u8) -> Option<Self> {
@@ -997,70 +996,70 @@ impl Default for RegisterMux {
 }
 
 
-impl From<ScanChannel> for RegisterMux {
-    fn from(value: ScanChannel) -> Self {
+impl From<Channel> for RegisterMux {
+    fn from(value: Channel) -> Self {
         match value {
-            ScanChannel::SingleEnded0 => RegisterMux {
+            Channel::SingleEnded0 => RegisterMux {
                 vin_p: MuxSelection::Channel0,
                 vin_m: MuxSelection::AnalogGnd,
             },
-            ScanChannel::SingleEnded1 => RegisterMux {
+            Channel::SingleEnded1 => RegisterMux {
                 vin_p: MuxSelection::Channel1,
                 vin_m: MuxSelection::AnalogGnd,
             },
-            ScanChannel::SingleEnded2 => RegisterMux {
+            Channel::SingleEnded2 => RegisterMux {
                 vin_p: MuxSelection::Channel2,
                 vin_m: MuxSelection::AnalogGnd,
             },
-            ScanChannel::SingleEnded3 => RegisterMux {
+            Channel::SingleEnded3 => RegisterMux {
                 vin_p: MuxSelection::Channel3,
                 vin_m: MuxSelection::AnalogGnd,
             },
-            ScanChannel::SingleEnded4 => RegisterMux {
+            Channel::SingleEnded4 => RegisterMux {
                 vin_p: MuxSelection::Channel4,
                 vin_m: MuxSelection::AnalogGnd,
             },
-            ScanChannel::SingleEnded5 => RegisterMux {
+            Channel::SingleEnded5 => RegisterMux {
                 vin_p: MuxSelection::Channel5,
                 vin_m: MuxSelection::AnalogGnd,
             },
-            ScanChannel::SingleEnded6 => RegisterMux {
+            Channel::SingleEnded6 => RegisterMux {
                 vin_p: MuxSelection::Channel6,
                 vin_m: MuxSelection::AnalogGnd,
             },
-            ScanChannel::SingleEnded7 => RegisterMux {
+            Channel::SingleEnded7 => RegisterMux {
                 vin_p: MuxSelection::Channel7,
                 vin_m: MuxSelection::AnalogGnd,
             },
-            ScanChannel::Differential0_1 => RegisterMux {
+            Channel::Differential0_1 => RegisterMux {
                 vin_p: MuxSelection::Channel0,
                 vin_m: MuxSelection::Channel1,
             },
-            ScanChannel::Differential2_3 => RegisterMux {
+            Channel::Differential2_3 => RegisterMux {
                 vin_p: MuxSelection::Channel2,
                 vin_m: MuxSelection::Channel3,
             },
-            ScanChannel::Differential4_5 => RegisterMux {
+            Channel::Differential4_5 => RegisterMux {
                 vin_p: MuxSelection::Channel4,
                 vin_m: MuxSelection::Channel5,
             },
-            ScanChannel::Differential6_7 => RegisterMux {
+            Channel::Differential6_7 => RegisterMux {
                 vin_p: MuxSelection::Channel6,
                 vin_m: MuxSelection::Channel7,
             },
-            ScanChannel::Temp => RegisterMux {
+            Channel::Temp => RegisterMux {
                 vin_p: MuxSelection::InternalTempSensorP,
                 vin_m: MuxSelection::InternalTempSensorM,
             },
-            ScanChannel::AnalogVdd => RegisterMux {
+            Channel::AnalogVdd => RegisterMux {
                 vin_p: MuxSelection::AnalogVdd,
                 vin_m: MuxSelection::AnalogGnd,
             },
-            ScanChannel::Vcm => RegisterMux {
+            Channel::Vcm => RegisterMux {
                 vin_p: MuxSelection::InternalVcm,
                 vin_m: MuxSelection::AnalogGnd,
             },
-            ScanChannel::Offset => RegisterMux {
+            Channel::Offset => RegisterMux {
                 vin_p: MuxSelection::AnalogGnd,
                 vin_m: MuxSelection::AnalogGnd,
             }
@@ -1110,7 +1109,7 @@ impl BitField for ScanDelayTime {
 
 
 
-pub enum ScanChannel {
+pub enum Channel {
     SingleEnded0 = 0b0000,
     SingleEnded1 = 0b0001,
     SingleEnded2 = 0b0010,
@@ -1129,18 +1128,19 @@ pub enum ScanChannel {
     Offset = 0b1111,
 }
 
-impl ScanChannel {
-    pub fn from_channel_single_ended(channel: Channel) -> Self {
-        match channel {
-            Channel::Channel0 => ScanChannel::SingleEnded0,
-            Channel::Channel1 => ScanChannel::SingleEnded1,
-            Channel::Channel2 => ScanChannel::SingleEnded2,
-            Channel::Channel3 => ScanChannel::SingleEnded3,
-            Channel::Channel4 => ScanChannel::SingleEnded4,
-            Channel::Channel5 => ScanChannel::SingleEnded5,
-            Channel::Channel6 => ScanChannel::SingleEnded6,
-            Channel::Channel7 => ScanChannel::SingleEnded7,
-        }
+impl Channel {
+    pub fn try_from_channel_num_single_ended(channel: u8) -> Option<Self> {
+        Some(match channel {
+            0 => Channel::SingleEnded0,
+            1 => Channel::SingleEnded1,
+            2 => Channel::SingleEnded2,
+            3 => Channel::SingleEnded3,
+            4 => Channel::SingleEnded4,
+            5 => Channel::SingleEnded5,
+            6 => Channel::SingleEnded6,
+            7 => Channel::SingleEnded7,
+            _ => return None,
+        })
     }
 
     fn bitflag(&self) -> u16 {
@@ -1194,18 +1194,18 @@ impl Default for RegisterScan {
 }
 
 impl RegisterScan {
-    pub fn is_channel_enabled(&self, channel: ScanChannel) -> bool {
+    pub fn is_channel_enabled(&self, channel: Channel) -> bool {
         let bitflag = channel.bitflag().to_be_bytes();
         (&self.0[0] & bitflag[0] != 0) || (&self.0[1] & bitflag[1] != 0)
     }
     
-    pub fn enable_channel(&mut self, channel: ScanChannel) {
+    pub fn enable_channel(&mut self, channel: Channel) {
         let bitflag = channel.bitflag().to_be_bytes();
         self.0[0] |= bitflag[0];
         self.0[1] |= bitflag[1];
     }
 
-    pub fn disable_channel(&mut self, channel: ScanChannel) {
+    pub fn disable_channel(&mut self, channel: Channel) {
         let bitflag = channel.bitflag().to_be_bytes();
         self.0[0] &= !bitflag[0];
         self.0[1] &= !bitflag[1];
@@ -1380,7 +1380,7 @@ impl Config {
 mod tests {
     use super::*;
 
-    fn compare_scan_mux(scan_channel: super::ScanChannel, mux_byte: u8) {
+    fn compare_scan_mux(scan_channel: super::Channel, mux_byte: u8) {
         let mut buf: [u8; 1] = [0];
         RegisterMux::from(scan_channel).to_bytes(&mut buf);
         assert_eq!(buf[0], mux_byte);
@@ -1389,21 +1389,21 @@ mod tests {
     #[test]
     fn test_scan_to_mux() {
         // Taken from Table 5-15 in the datasheet
-        compare_scan_mux(ScanChannel::SingleEnded0, 0x08);
-        compare_scan_mux(ScanChannel::SingleEnded1, 0x18);
-        compare_scan_mux(ScanChannel::SingleEnded2, 0x28);
-        compare_scan_mux(ScanChannel::SingleEnded3, 0x38);
-        compare_scan_mux(ScanChannel::SingleEnded4, 0x48);
-        compare_scan_mux(ScanChannel::SingleEnded5, 0x58);
-        compare_scan_mux(ScanChannel::SingleEnded6, 0x68);
-        compare_scan_mux(ScanChannel::SingleEnded7, 0x78);
-        compare_scan_mux(ScanChannel::Differential0_1, 0x01);
-        compare_scan_mux(ScanChannel::Differential2_3, 0x23);
-        compare_scan_mux(ScanChannel::Differential4_5, 0x45);
-        compare_scan_mux(ScanChannel::Differential6_7, 0x67);
-        compare_scan_mux(ScanChannel::Temp, 0xDE);
-        compare_scan_mux(ScanChannel::AnalogVdd, 0x98);
-        compare_scan_mux(ScanChannel::Vcm, 0xF8);
-        compare_scan_mux(ScanChannel::Offset, 0x88);
+        compare_scan_mux(Channel::SingleEnded0, 0x08);
+        compare_scan_mux(Channel::SingleEnded1, 0x18);
+        compare_scan_mux(Channel::SingleEnded2, 0x28);
+        compare_scan_mux(Channel::SingleEnded3, 0x38);
+        compare_scan_mux(Channel::SingleEnded4, 0x48);
+        compare_scan_mux(Channel::SingleEnded5, 0x58);
+        compare_scan_mux(Channel::SingleEnded6, 0x68);
+        compare_scan_mux(Channel::SingleEnded7, 0x78);
+        compare_scan_mux(Channel::Differential0_1, 0x01);
+        compare_scan_mux(Channel::Differential2_3, 0x23);
+        compare_scan_mux(Channel::Differential4_5, 0x45);
+        compare_scan_mux(Channel::Differential6_7, 0x67);
+        compare_scan_mux(Channel::Temp, 0xDE);
+        compare_scan_mux(Channel::AnalogVdd, 0x98);
+        compare_scan_mux(Channel::Vcm, 0xF8);
+        compare_scan_mux(Channel::Offset, 0x88);
     }
 }
