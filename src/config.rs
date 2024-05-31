@@ -36,13 +36,29 @@ impl<const SHIFT: u8> BoolBitfield<SHIFT> {
 }
 
 
-trait Register {
+pub(crate) trait Register {
     fn address() -> u8;
     fn size() -> usize;
     fn bitsize() -> usize {
         Self::size() * 8
     }
 }
+
+pub(crate) struct RegisterAdcData;
+
+impl Register for RegisterAdcData {
+    fn address() -> u8 {
+        0x00
+    }
+
+    fn size() -> usize {
+        // The maximum size of this register is 4 byte, but it can differ. Therefore, prevent this funcion from being called.
+        unreachable!()
+    }
+}
+
+
+
 
 #[repr(u8)]
 pub enum AdcMode {
@@ -150,6 +166,12 @@ impl BitField for VoltageReference {
 
 
 pub struct RegisterConfig0(u8);
+
+impl Default for RegisterConfig0 {
+    fn default() -> Self {
+        RegisterConfig0(0b1100_0000)
+    }
+}
 
 impl Register for RegisterConfig0 {
     fn address() -> u8 {
@@ -299,6 +321,12 @@ impl Register for RegisterConfig1 {
 
     fn size() -> usize {
         1
+    }
+}
+
+impl Default for RegisterConfig1 {
+    fn default() -> Self {
+        Self(0b0000_1100)
     }
 }
 
@@ -459,6 +487,12 @@ impl Register for RegisterConfig2 {
     }
 }
 
+impl Default for RegisterConfig2 {
+    fn default() -> Self {
+        Self(0b10001011)
+    }
+}
+
 impl RegisterConfig2 {
     fn boost_mode(&self) -> BoostMode {
         BoostMode::get(self.0)
@@ -535,11 +569,11 @@ impl BitField for ConversionMode {
 
 
 pub enum DataFormat {
-    /// 32-bit (25-bit right justified data + Channel ID)
-    Size32Data25RightWithId = 0b11,
+    /// 32-bit (25-bit data with 4-bit sign extension and 4 bit Channel ID)
+    Size32Data25WithId = 0b11,
 
-    /// 32-bit (25-bit left justified data)
-    Size32Data25Right = 0b10,
+    /// 32-bit (25-bit data with 8 bit sign extension)
+    Size32Data25 = 0b10,
 
     /// 32-bit (24-bit left justified data)
     Size32Data24Left = 0b01,
@@ -558,8 +592,8 @@ impl BitField for DataFormat {
     
     fn get(value: u8) -> Self {
         match (value & Self::MASK) >> Self::SHIFT {
-            0b11 => DataFormat::Size32Data25RightWithId,
-            0b10 => DataFormat::Size32Data25Right,
+            0b11 => DataFormat::Size32Data25WithId,
+            0b10 => DataFormat::Size32Data25,
             0b01 => DataFormat::Size32Data24Left,
             0b00 => DataFormat::Size24,
             _ => unreachable!("Invalid data format"),
@@ -649,48 +683,54 @@ impl Register for RegisterConfig3 {
     }
 }
 
+impl Default for RegisterConfig3 {
+    fn default() -> Self {
+        Self(0b0000_0000)
+    }
+}
+
 impl RegisterConfig3 {
-    fn conversion_mode(&self) -> ConversionMode {
+    pub fn conversion_mode(&self) -> ConversionMode {
         ConversionMode::get(self.0)
     }
 
-    fn set_conversion_mode(mut self, conversion_mode: ConversionMode) -> Self {
+    pub fn set_conversion_mode(mut self, conversion_mode: ConversionMode) -> Self {
         conversion_mode.set(&mut self.0);
         self
     }
 
-    fn data_format(&self) -> DataFormat {
+    pub fn data_format(&self) -> DataFormat {
         DataFormat::get(self.0)
     }
 
-    fn set_data_format(mut self, data_format: DataFormat) -> Self {
+    pub fn set_data_format(mut self, data_format: DataFormat) -> Self {
         data_format.set(&mut self.0);
         self
     }
 
-    fn crc_read(&self) -> CRCRead {
+    pub fn crc_read(&self) -> CRCRead {
         CRCRead::get(self.0)
     }
 
-    fn set_crc_read(mut self, crc_read: CRCRead) -> Self {
+    pub fn set_crc_read(mut self, crc_read: CRCRead) -> Self {
         crc_read.set(&mut self.0);
         self
     }
 
-    fn digital_offset_calibration(&self) -> DigitalOffsetCalibration {
+    pub fn digital_offset_calibration(&self) -> DigitalOffsetCalibration {
         DigitalOffsetCalibration::get(self.0)
     }
 
-    fn set_digital_offset_calibration(mut self, digital_offset_calibration: DigitalOffsetCalibration) -> Self {
+    pub fn set_digital_offset_calibration(mut self, digital_offset_calibration: DigitalOffsetCalibration) -> Self {
         digital_offset_calibration.set(&mut self.0);
         self
     }
 
-    fn digital_gain_calibration(&self) -> DigitalGainCalibration {
+    pub fn digital_gain_calibration(&self) -> DigitalGainCalibration {
         DigitalGainCalibration::get(self.0)
     }
 
-    fn set_digital_gain_calibration(mut self, digital_gain_calibration: DigitalGainCalibration) -> Self {
+    pub fn set_digital_gain_calibration(mut self, digital_gain_calibration: DigitalGainCalibration) -> Self {
         digital_gain_calibration.set(&mut self.0);
         self
     }
@@ -743,6 +783,12 @@ impl Register for RegisterIRQ {
 
     fn size() -> usize {
         1
+    }
+}
+
+impl Default for RegisterIRQ {
+    fn default() -> Self {
+        Self(0b01110011)
     }
 }
 
@@ -863,6 +909,15 @@ impl Register for RegisterMux {
 
     fn size() -> usize {
         1
+    }
+}
+
+impl Default for RegisterMux {
+    fn default() -> Self {
+        Self {
+            vin_p: MuxSelection::Channel0,
+            vin_m: MuxSelection::Channel1,
+        }
     }
 }
 
@@ -989,6 +1044,12 @@ impl Register for RegisterScan {
     }
 }
 
+impl Default for RegisterScan {
+    fn default() -> Self {
+        Self([0b0000_0000, 0b0000_0000, 0b0000_0000])
+    }
+}
+
 impl RegisterScan {
     fn is_channel_enabled(&self, channel: ScanChannel) -> bool {
         let bitflag = channel.bitflag().to_be_bytes();
@@ -1031,6 +1092,25 @@ pub struct Config {
     offsetcal: u32,
     gaincal: u32,
     lock: u8,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            config0: RegisterConfig0::default(),
+            config1: RegisterConfig1::default(),
+            config2: RegisterConfig2::default(),
+            config3: RegisterConfig3::default(),
+            irq: RegisterIRQ::default(),
+            mux: RegisterMux::default(),
+            scan: RegisterScan::default(),
+            timer: 0,
+            offsetcal: 0,
+            gaincal: 0,
+            lock: 0xA5,
+        }
+    }
+
 }
 
 impl Config {
@@ -1080,9 +1160,7 @@ impl Config {
     }
 
     /// Converts to bytes starting from register address 0x01 up until address 0xD.
-    fn to_bytes(&self) -> [u8; 23] {
-        let mut result = [0u8; 23];
-
+    pub(crate) fn to_bytes(&self, result: &mut [u8; 23]) {
         result[0] = self.config0.0;
         result[1] = self.config1.0;
         result[2] = self.config2.0;
@@ -1094,11 +1172,9 @@ impl Config {
         result[12..15].copy_from_slice(&self.offsetcal.to_be_bytes()[1..]);
         result[15..18].copy_from_slice(&self.gaincal.to_be_bytes()[1..]);
         result[22] = self.lock;
-
-        result
     }
 
-    fn from_bytes(bytes: &[u8; 23]) -> Option<Self> {
+    pub(crate) fn from_bytes(bytes: &[u8; 23]) -> Option<Self> {
         Some(Config {
             config0: RegisterConfig0(bytes[0]),
             config1: RegisterConfig1(bytes[1]),
