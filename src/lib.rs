@@ -1,13 +1,15 @@
-//#![cfg_attr(not(feature = "std"), no_std)]
 //! Platform-agnostic driver for the Microchip
 //! MCP3561, MCP3562, MCP3564, and MCP3561R, MCP3562R, MCP3564R 24-bit Delta-Sigma ADCs.
 //! 
 //! Implementation is based on the datasheet of the MCP356xR (which includes a voltage
 //! reference), but should also work with the older MCP356x chips.
+//! 
+//! The devices support SPI modes 0 and 3.
 
+#![cfg_attr(not(test), no_std)]
 
-use config::{Config, IRQMode, Register, RegisterLock, RegisterMux};
-use embedded_hal::spi::{Mode, SpiDevice};
+use config::{Config, IRQMode, Register, RegisterMux};
+use embedded_hal::spi::SpiDevice;
 
 pub mod config;
 
