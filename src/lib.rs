@@ -6,7 +6,7 @@
 //! reference), but should also work with the older MCP356x chips.
 
 
-use config::Register as _;
+use config::{Config, IRQMode, Register, RegisterLock, RegisterMux};
 use embedded_hal::spi::{Mode, SpiDevice};
 
 pub mod config;
@@ -28,8 +28,21 @@ pub enum Error<E> {
     /// When performing a single-shot conversion
     WrongConfig,
 
+    /// Trying to write to a read-only register
+    RegisterReadOnly,
+
+    /// The IRQ_MODE register is not set to MDAT_OUT_IRQ_HIGH or MDAT_OUT_IRQ_Z, therefore
+    /// no ADC data can be read from the ADCDATA register (since the MDAT output codes are stored there)
+    MdatOutSelected,
+
     /// The data is not ready to be read.
     DataNotReady,
+
+    /// Could not parse the configuration from the device.
+    ConfigReadError,
+
+    /// The device is locked and cannot be written to. Call `unlock()` first.
+    DeviceLocked,
 }
 
 
@@ -48,7 +61,7 @@ pub enum Channel {
 
 /// The hard-coded device address. The factory default is 0b01,
 /// but other addresses are available upon request from Microchip.
-enum DeviceAddress {
+pub enum DeviceAddress {
     Adr00,
     Adr01,
     Adr10,
@@ -98,24 +111,25 @@ impl Command {
     }
 }
 
-struct StatusByte(u8);
+pub struct StatusByte(u8);
 
 impl StatusByte {
-    fn is_data_ready(&self) -> bool {
+    pub fn is_data_ready(&self) -> bool {
         self.0 & 0b0000_0100 == 0
     }
 
-    fn is_crc_error(&self) -> bool {
+    pub fn is_crc_error(&self) -> bool {
         self.0 & 0b0000_0010 == 0
     }
 
     /// The POR bit is set to 0 after a power-on reset, and 1 for each subsequent read.
-    fn por(&self) -> bool {
+    pub fn por(&self) -> bool {
         self.0 & 0b0000_0001 == 0
     }
 }
 
 
+/// Convert the raw ADC data to an i32, depending on the configured data format.
 fn convert_adc_data(raw_data: &[u8], data_format: config::DataFormat) -> i32 {
     match data_format {
         config::DataFormat::Size32Data25WithId => {
@@ -213,30 +227,77 @@ impl<SPI: SpiDevice> MCP356x<SPI> {
         Ok(StatusByte(read_buffer[0]))
     }
 
-    fn read_adc_data(&mut self) -> Result<i32, Error<SPI::Error>> {
+    /// Reads the ADCDATA register, which returns the latest conversion result.
+    /// This function doesn't trigger a conversion, it just reads the register.
+    pub fn read_adc_register_data(&mut self) -> Result<i32, Error<SPI::Error>> {
         let mut read_buffer = [0u8; 5];
+
+        // Make sure that the register actually contains the ADC data
+        match self.config.irq.irq_mode() {
+            IRQMode::MDATOut_IRQ_High | IRQMode::MDATOut_IRQ_Z => {
+                return Err(Error::MdatOutSelected);
+            },
+            _ => {},
+        }
+
+        let register_length = match self.config.config3.data_format() {
+            config::DataFormat::Size24 => 3,
+            _ => 4,
+        };
         
-        self.spi.transfer(&mut read_buffer, &[self.command_byte::<config::RegisterAdcData>(Command::StaticRead)]).map_err(Error::SPIError)?;
+        self.spi.transfer(&mut read_buffer[0..register_length+1], &[self.command_byte::<config::RegisterAdcData>(Command::StaticRead)]).map_err(Error::SPIError)?;
         let status_byte = StatusByte(read_buffer[0]);
         if !status_byte.is_data_ready() {
             return Err(Error::DataNotReady);
         }
 
-        match self.config.config3.data_format() {
-            config::DataFormat::Size32Data25WithId => {
-
-            },
-            config::DataFormat::Size32Data25 => todo!(),
-            config::DataFormat::Size32Data24Left => todo!(),
-            config::DataFormat::Size24 => todo!(),
-        }
-
-        todo!()
+        Ok(convert_adc_data(&read_buffer[1..register_length+1], self.config.config3.data_format()))
     }
 
-    /// Oneshot reading of the voltage on the given channel using the internal MUX.
-    pub fn read_voltage(&mut self) -> Result<f32, Error<SPI::Error>> {
-        todo!()
+    /// Performs a single-shot conversion with the given MUX setting.
+    /// It is recommended to check for DataNotReady errors and retry reading the ADC data
+    /// by calling read_adc_register_data() in case the data is not yet ready.
+    pub fn single_shot(&mut self, mux: RegisterMux) -> Result<i32, Error<SPI::Error>> {
+        if self.config.mux != mux {
+            self.write_register(mux)?;
+            self.config.mux = mux;
+        }
+
+        self.fast_command(Command::Conversion)?;
+        self.read_adc_register_data()
+    }
+
+    /// Write to a single register of the device.
+    /// This might invalidate the current configuration, so it is recommended to call `read_config` afterwards.
+    pub fn write_register<R: Register>(&mut self, register: R) -> Result<StatusByte, Error<SPI::Error>> {
+        // The maximum size of a register is 4 bytes
+        let mut write_buffer = [0u8; 5];
+
+        if R::WRTIABLE {
+            return Err(Error::RegisterReadOnly);
+        }
+
+        if self.config.lock.is_locked() {
+            return Err(Error::DeviceLocked);
+        }
+
+        let size = R::size();
+        register.to_bytes((&mut write_buffer[1..1+size]).try_into().unwrap());
+        write_buffer[0] = self.command_byte::<R>(Command::IncrementalWrite);
+
+        self.transfer(write_buffer)
+    }
+
+    pub fn unlock(&mut self) -> Result<(), Error<SPI::Error>> {
+        self.config.lock.unlock();
+        self.write_register(self.config.lock.clone())?;
+        Ok(())
+    }
+
+    pub fn lock(&mut self) -> Result<(), Error<SPI::Error>> {
+        self.config.lock.lock();
+        self.write_register(self.config.lock.clone())?;
+        Ok(())
     }
 
     /// Fully configure the ADC with the given configuration in one write cycle.
@@ -249,6 +310,26 @@ impl<SPI: SpiDevice> MCP356x<SPI> {
         self.config = config;
 
         Ok(result)
+    }
+
+    /// Reads the current configuration from the device and stores it in the struct.
+    pub fn read_config(&mut self) -> Result<config::Config, Error<SPI::Error>> {
+        let mut read_buffer = [0u8; 24];
+        let write_buffer = [self.command_byte::<config::RegisterConfig0>(Command::IncrementalWrite)];
+
+        self.spi.transfer(&mut read_buffer, &write_buffer).map_err(Error::SPIError)?;
+        self.config = Config::from_bytes((&read_buffer[1..24]).try_into().unwrap()).ok_or(Error::ConfigReadError)?;
+
+        Ok(self.config.clone())
+    }
+
+    /// Returns the current configuration of the device, as it is stored in the struct.
+    /// As long as the configuration has not been changed, this should be the same as the configuration
+    /// stored in the device, but this method does not read the configuration from the device.
+    /// If the device is being accessed from multiple controllers, use `read_config` to make sure
+    /// that the configuration is up-to-date.
+    pub fn config(&self) -> &config::Config {
+        &self.config
     }
 }
 

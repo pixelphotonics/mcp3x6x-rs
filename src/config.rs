@@ -36,23 +36,41 @@ impl<const SHIFT: u8> BoolBitfield<SHIFT> {
 }
 
 
-pub(crate) trait Register {
+pub trait Register {
+    const WRTIABLE: bool = true;
+    const FIXED_SIZE: bool = true;
+
     fn address() -> u8;
     fn size() -> usize;
     fn bitsize() -> usize {
         Self::size() * 8
     }
+
+    fn to_bytes(&self, out: &mut [u8]);
+    fn try_from_bytes(bytes: &[u8]) -> Option<Self> where Self: Sized;
 }
 
 pub(crate) struct RegisterAdcData;
 
 impl Register for RegisterAdcData {
+    const WRTIABLE: bool = false;
+    const FIXED_SIZE: bool = false;
+
     fn address() -> u8 {
         0x00
     }
 
     fn size() -> usize {
         // The maximum size of this register is 4 byte, but it can differ. Therefore, prevent this funcion from being called.
+        unreachable!()
+    }
+    
+    fn to_bytes(&self, out: &mut [u8]) {
+        // This function should never be called
+        unreachable!()
+    }
+    
+    fn try_from_bytes(bytes: &[u8]) -> Option<Self> where Self: Sized {
         unreachable!()
     }
 }
@@ -165,6 +183,7 @@ impl BitField for VoltageReference {
 }
 
 
+#[derive(Debug, Clone, Copy)]
 pub struct RegisterConfig0(u8);
 
 impl Default for RegisterConfig0 {
@@ -181,41 +200,49 @@ impl Register for RegisterConfig0 {
     fn size() -> usize {
         1
     }
+
+    fn to_bytes(&self, out: &mut [u8]) {
+        out[0] = self.0;
+    }
+    
+    fn try_from_bytes(bytes: &[u8]) -> Option<Self> {
+        Some(Self(bytes[0]))
+    }
 }
 
 impl RegisterConfig0 {
-    fn voltage_reference(&self) -> VoltageReference {
+    pub fn voltage_reference(&self) -> VoltageReference {
         VoltageReference::get(self.0)
     }
 
-    fn set_voltage_reference(mut self, voltage_reference: VoltageReference) -> Self {
+    pub fn set_voltage_reference(mut self, voltage_reference: VoltageReference) -> Self {
         voltage_reference.set(&mut self.0);
         self
     }
 
-    fn clock_selection(&self) -> ClockSelection {
+    pub fn clock_selection(&self) -> ClockSelection {
         ClockSelection::get(self.0)
     }
 
-    fn set_clock_selection(mut self, clock_selection: ClockSelection) -> Self {
+    pub fn set_clock_selection(mut self, clock_selection: ClockSelection) -> Self {
         clock_selection.set(&mut self.0);
         self
     }
 
-    fn current_source(&self) -> CurrentSource {
+    pub fn current_source(&self) -> CurrentSource {
         CurrentSource::get(self.0)
     }
 
-    fn set_current_source(mut self, current_source: CurrentSource) -> Self {
+    pub fn set_current_source(mut self, current_source: CurrentSource) -> Self {
         current_source.set(&mut self.0);
         self
     }
 
-    fn adc_mode(&self) -> AdcMode {
+    pub fn adc_mode(&self) -> AdcMode {
         AdcMode::get(self.0)
     }
 
-    fn set_adc_mode(mut self, adc_mode: AdcMode) -> Self {
+    pub fn set_adc_mode(mut self, adc_mode: AdcMode) -> Self {
         adc_mode.set(&mut self.0);
         self
     }
@@ -312,6 +339,7 @@ impl BitField for OversamplingRatio {
 }
 
 
+#[derive(Debug, Clone, Copy)]
 pub struct RegisterConfig1(u8);
 
 impl Register for RegisterConfig1 {
@@ -322,6 +350,14 @@ impl Register for RegisterConfig1 {
     fn size() -> usize {
         1
     }
+
+    fn to_bytes(&self, out: &mut [u8]) {
+        out[0] = self.0;
+    }
+    
+    fn try_from_bytes(bytes: &[u8]) -> Option<Self> {
+        Some(Self(bytes[0]))
+    }
 }
 
 impl Default for RegisterConfig1 {
@@ -331,20 +367,20 @@ impl Default for RegisterConfig1 {
 }
 
 impl RegisterConfig1 {
-    fn prescaler_value(&self) -> PrescalerValue {
+    pub fn prescaler_value(&self) -> PrescalerValue {
         PrescalerValue::get(self.0)
     }
 
-    fn set_prescaler_value(mut self, prescaler_value: PrescalerValue) -> Self {
+    pub fn set_prescaler_value(mut self, prescaler_value: PrescalerValue) -> Self {
         prescaler_value.set(&mut self.0);
         self
     }
 
-    fn oversampling_ratio(&self) -> OversamplingRatio {
+    pub fn oversampling_ratio(&self) -> OversamplingRatio {
         OversamplingRatio::get(self.0)
     }
 
-    fn set_oversampling_ratio(mut self, oversampling_ratio: OversamplingRatio) -> Self {
+    pub fn set_oversampling_ratio(mut self, oversampling_ratio: OversamplingRatio) -> Self {
         oversampling_ratio.set(&mut self.0);
         self
     }
@@ -475,6 +511,7 @@ impl BitField for AutoZeroReference {
 
 
 
+#[derive(Debug, Clone, Copy)]
 pub struct RegisterConfig2(u8);
 
 impl Register for RegisterConfig2 {
@@ -485,6 +522,14 @@ impl Register for RegisterConfig2 {
     fn size() -> usize {
         1
     }
+
+    fn to_bytes(&self, out: &mut [u8]) {
+        out[0] = self.0;
+    }
+    
+    fn try_from_bytes(bytes: &[u8]) -> Option<Self> {
+        Some(Self(bytes[0]))
+    }
 }
 
 impl Default for RegisterConfig2 {
@@ -494,38 +539,38 @@ impl Default for RegisterConfig2 {
 }
 
 impl RegisterConfig2 {
-    fn boost_mode(&self) -> BoostMode {
+    pub fn boost_mode(&self) -> BoostMode {
         BoostMode::get(self.0)
     }
 
-    fn set_boost_mode(mut self, boost_mode: BoostMode) -> Self {
+    pub fn set_boost_mode(mut self, boost_mode: BoostMode) -> Self {
         boost_mode.set(&mut self.0);
         self
     }
 
-    fn gain(&self) -> Gain {
+    pub fn gain(&self) -> Gain {
         Gain::get(self.0)
     }
 
-    fn set_gain(mut self, gain: Gain) -> Self {
+    pub fn set_gain(mut self, gain: Gain) -> Self {
         gain.set(&mut self.0);
         self
     }
 
-    fn auto_zeroing(&self) -> AutoZeroing {
+    pub fn auto_zeroing(&self) -> AutoZeroing {
         AutoZeroing::get(self.0)
     }
 
-    fn set_auto_zeroing(mut self, auto_zeroing: AutoZeroing) -> Self {
+    pub fn set_auto_zeroing(mut self, auto_zeroing: AutoZeroing) -> Self {
         auto_zeroing.set(&mut self.0);
         self
     }
 
-    fn auto_zero_reference(&self) -> AutoZeroReference {
+    pub fn auto_zero_reference(&self) -> AutoZeroReference {
         AutoZeroReference::get(self.0)
     }
 
-    fn set_auto_zero_reference(mut self, auto_zero_reference: AutoZeroReference) -> Self {
+    pub fn set_auto_zero_reference(mut self, auto_zero_reference: AutoZeroReference) -> Self {
         auto_zero_reference.set(&mut self.0);
         self
     }
@@ -671,6 +716,7 @@ impl BitField for DigitalGainCalibration {
 }
 
 
+#[derive(Debug, Clone, Copy)]
 pub struct RegisterConfig3(u8);
 
 impl Register for RegisterConfig3 {
@@ -680,6 +726,14 @@ impl Register for RegisterConfig3 {
 
     fn size() -> usize {
         1
+    }
+
+    fn to_bytes(&self, out: &mut [u8]) {
+        out[0] = self.0;
+    }
+    
+    fn try_from_bytes(bytes: &[u8]) -> Option<Self> {
+        Some(Self(bytes[0]))
     }
 }
 
@@ -744,7 +798,7 @@ type PORStatus = BoolBitfield<4>;
 type EnFastCmd = BoolBitfield<1>;
 type EnSTP = BoolBitfield<0>;
 
-enum IRQMode {
+pub enum IRQMode {
     MDATOut_IRQ_High = 0b11,
     MDATOut_IRQ_Z = 0b10,
 
@@ -774,6 +828,7 @@ impl BitField for IRQMode {
 
 
 
+#[derive(Debug, Clone, Copy)]
 pub struct RegisterIRQ(u8);
 
 impl Register for RegisterIRQ {
@@ -784,6 +839,14 @@ impl Register for RegisterIRQ {
     fn size() -> usize {
         1
     }
+
+    fn to_bytes(&self, out: &mut [u8]) {
+        out[0] = self.0;
+    }
+    
+    fn try_from_bytes(bytes: &[u8]) -> Option<Self> {
+        Some(Self(bytes[0]))
+    }
 }
 
 impl Default for RegisterIRQ {
@@ -793,41 +856,41 @@ impl Default for RegisterIRQ {
 }
 
 impl RegisterIRQ {
-    fn dr_status(&self) -> DRStatus {
+    pub fn dr_status(&self) -> DRStatus {
         DRStatus::get(self.0)
     }
 
-    fn crccfg_status(&self) -> CRCCFGStatus {
+    pub fn crccfg_status(&self) -> CRCCFGStatus {
         CRCCFGStatus::get(self.0)
     }
 
-    fn por_status(&self) -> PORStatus {
+    pub fn por_status(&self) -> PORStatus {
         PORStatus::get(self.0)
     }
 
-    fn fast_commands_enabled(&self) -> bool {
+    pub fn fast_commands_enabled(&self) -> bool {
         EnFastCmd::get(self.0).0
     }
 
-    fn set_fast_commands_enabled(mut self, enable: bool) -> Self {
+    pub fn set_fast_commands_enabled(mut self, enable: bool) -> Self {
         EnFastCmd::new(enable).set(&mut self.0);
         self
     }
 
-    fn start_interrupt_output_enabled(&self) -> bool {
+    pub fn start_interrupt_output_enabled(&self) -> bool {
         EnSTP::get(self.0).0
     }
 
-    fn set_start_interrupt_output_enabled(mut self, enable: bool) -> Self {
+    pub fn set_start_interrupt_output_enabled(mut self, enable: bool) -> Self {
         EnSTP::new(enable).set(&mut self.0);
         self
     }
 
-    fn irq_mode(&self) -> IRQMode {
+    pub fn irq_mode(&self) -> IRQMode {
         IRQMode::get(self.0)
     }
 
-    fn set_irq_mode(mut self, irq_mode: IRQMode) -> Self {
+    pub fn set_irq_mode(mut self, irq_mode: IRQMode) -> Self {
         irq_mode.set(&mut self.0);
         self
     }
@@ -837,7 +900,7 @@ impl RegisterIRQ {
 
 
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
 enum MuxSelection {
     InternalVcm = 0b1111,
@@ -859,7 +922,7 @@ enum MuxSelection {
 }
 
 impl MuxSelection {
-    fn from_channel(channel: Channel) -> Self {
+    pub fn from_channel(channel: Channel) -> Self {
         match channel {
             Channel::Channel0 => MuxSelection::Channel0,
             Channel::Channel1 => MuxSelection::Channel1,
@@ -897,6 +960,7 @@ impl MuxSelection {
 
 
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RegisterMux{
     pub vin_p: MuxSelection,
     pub vin_m: MuxSelection,
@@ -910,6 +974,17 @@ impl Register for RegisterMux {
     fn size() -> usize {
         1
     }
+
+    fn to_bytes(&self, out: &mut [u8]) {
+        out[0] = (self.vin_p as u8) << 4 | (self.vin_m as u8);
+    }
+    
+    fn try_from_bytes(bytes: &[u8]) -> Option<Self> {
+        Some(RegisterMux {
+            vin_p: MuxSelection::try_from_byte((bytes[0] & 0b1111_0000) >> 4)?,
+            vin_m: MuxSelection::try_from_byte(bytes[0] & 0b0000_1111)?,
+        })
+    }
 }
 
 impl Default for RegisterMux {
@@ -921,17 +996,9 @@ impl Default for RegisterMux {
     }
 }
 
-impl RegisterMux {
-    fn to_byte(&self) -> u8 {
-        (self.vin_p as u8) << 4 | (self.vin_m as u8)
-    }
 
-    fn try_from_byte(byte: u8) -> Option<Self> {
-        Some(RegisterMux {
-            vin_p: MuxSelection::try_from_byte((byte & 0b1111_0000) >> 4)?,
-            vin_m: MuxSelection::try_from_byte(byte & 0b0000_1111)?,
-        })
-    }
+impl RegisterMux {
+    //pub fn
 }
 
 
@@ -1009,6 +1076,75 @@ impl ScanChannel {
         }
     }
 
+    pub fn to_mux(&self) -> RegisterMux {
+        match self {
+            Self::SingleEnded0 => RegisterMux {
+                vin_p: MuxSelection::Channel0,
+                vin_m: MuxSelection::Channel1,
+            },
+            Self::SingleEnded1 => RegisterMux {
+                vin_p: MuxSelection::Channel1,
+                vin_m: MuxSelection::Channel0,
+            },
+            Self::SingleEnded2 => RegisterMux {
+                vin_p: MuxSelection::Channel2,
+                vin_m: MuxSelection::Channel3,
+            },
+            Self::SingleEnded3 => RegisterMux {
+                vin_p: MuxSelection::Channel3,
+                vin_m: MuxSelection::Channel2,
+            },
+            Self::SingleEnded4 => RegisterMux {
+                vin_p: MuxSelection::Channel4,
+                vin_m: MuxSelection::Channel5,
+            },
+            Self::SingleEnded5 => RegisterMux {
+                vin_p: MuxSelection::Channel5,
+                vin_m: MuxSelection::Channel4,
+            },
+            Self::SingleEnded6 => RegisterMux {
+                vin_p: MuxSelection::Channel6,
+                vin_m: MuxSelection::Channel7,
+            },
+            Self::SingleEnded7 => RegisterMux {
+                vin_p: MuxSelection::Channel7,
+                vin_m: MuxSelection::Channel6,
+            },
+            Self::Differential0_1 => RegisterMux {
+                vin_p: MuxSelection::Channel0,
+                vin_m: MuxSelection::Channel1,
+            },
+            Self::Differential2_3 => RegisterMux {
+                vin_p: MuxSelection::Channel2,
+                vin_m: MuxSelection::Channel3,
+            },
+            Self::Differential4_5 => RegisterMux {
+                vin_p: MuxSelection::Channel4,
+                vin_m: MuxSelection::Channel5,
+            },
+            Self::Differential6_7 => RegisterMux {
+                vin_p: MuxSelection::Channel6,
+                vin_m: MuxSelection::Channel7,
+            },
+            Self::Temp => RegisterMux {
+                vin_p: MuxSelection::InternalTempSensorP,
+                vin_m: MuxSelection::InternalTempSensorM,
+            },
+            Self::AnalogVdd => RegisterMux {
+                vin_p: MuxSelection::AnalogVdd,
+                vin_m: MuxSelection::AnalogGnd,
+            },
+            Self::Vcm => RegisterMux {
+                vin_p: MuxSelection::InternalVcm,
+                vin_m: MuxSelection::AnalogGnd,
+            },
+            Self::Offset => RegisterMux {
+                vin_p: MuxSelection::AnalogGnd,
+                vin_m: MuxSelection::AnalogGnd,
+            }
+        }
+    }
+
     fn bitflag(&self) -> u16 {
         match self {
             Self::SingleEnded0 => 0b0000_0000_0000_0001,
@@ -1032,6 +1168,7 @@ impl ScanChannel {
 }
 
 
+#[derive(Debug, Clone, Copy)]
 pub struct RegisterScan([u8; 3]);
 
 impl Register for RegisterScan {
@@ -1042,6 +1179,14 @@ impl Register for RegisterScan {
     fn size() -> usize {
         3
     }
+
+    fn to_bytes(&self, out: &mut [u8]) {
+        out[0..3].copy_from_slice(&self.0)
+    }
+    
+    fn try_from_bytes(bytes: &[u8]) -> Option<Self> where Self: Sized {
+        Some(Self([bytes[0], bytes[1], bytes[2]]))
+    }
 }
 
 impl Default for RegisterScan {
@@ -1051,34 +1196,85 @@ impl Default for RegisterScan {
 }
 
 impl RegisterScan {
-    fn is_channel_enabled(&self, channel: ScanChannel) -> bool {
+    pub fn is_channel_enabled(&self, channel: ScanChannel) -> bool {
         let bitflag = channel.bitflag().to_be_bytes();
         (&self.0[0] & bitflag[0] != 0) || (&self.0[1] & bitflag[1] != 0)
     }
     
-    fn enable_channel(&mut self, channel: ScanChannel) {
+    pub fn enable_channel(&mut self, channel: ScanChannel) {
         let bitflag = channel.bitflag().to_be_bytes();
         self.0[0] |= bitflag[0];
         self.0[1] |= bitflag[1];
     }
 
-    fn disable_channel(&mut self, channel: ScanChannel) {
+    pub fn disable_channel(&mut self, channel: ScanChannel) {
         let bitflag = channel.bitflag().to_be_bytes();
         self.0[0] &= !bitflag[0];
         self.0[1] &= !bitflag[1];
     }
 
-    fn scan_delay_time(&self) -> ScanDelayTime {
+    pub fn scan_delay_time(&self) -> ScanDelayTime {
         ScanDelayTime::get(self.0[2])
     }
 
-    fn set_scan_delay_time(mut self, scan_delay_time: ScanDelayTime) -> Self {
+    pub fn set_scan_delay_time(mut self, scan_delay_time: ScanDelayTime) -> Self {
         scan_delay_time.set(&mut self.0[2]);
         self
     }
 }
 
 
+#[derive(Debug, Clone, Copy)]
+pub struct RegisterLock(u8);
+
+impl Register for RegisterLock {
+    fn address() -> u8 {
+        0xD
+    }
+
+    fn size() -> usize {
+        1
+    }
+
+    fn to_bytes(&self, out: &mut [u8]) {
+        out[0] = self.0;
+    }
+    
+    fn try_from_bytes(bytes: &[u8]) -> Option<Self> {
+        Some(Self(bytes[0]))
+    }
+}
+
+impl Default for RegisterLock {
+    fn default() -> Self {
+        RegisterLock(0xA5)
+    }
+}
+
+impl RegisterLock {
+    pub fn new_locked() -> Self {
+        RegisterLock(0x0)
+    }
+
+    pub fn new_unlocked() -> Self {
+        RegisterLock(0xA5)
+    }
+
+    pub fn lock(&mut self) {
+        self.0 = 0x0;
+    }
+
+    pub fn unlock(&mut self) {
+        self.0 = 0xA5;
+    }
+
+    pub fn is_locked(&self) -> bool {
+        self.0 != 0xA5
+    }
+}
+
+
+#[derive(Debug, Clone, Copy)]
 pub struct Config {
     pub config0: RegisterConfig0,
     pub config1: RegisterConfig1,
@@ -1091,7 +1287,7 @@ pub struct Config {
     timer: u32,
     offsetcal: u32,
     gaincal: u32,
-    lock: u8,
+    pub lock: RegisterLock,
 }
 
 impl Default for Config {
@@ -1107,7 +1303,7 @@ impl Default for Config {
             timer: 0,
             offsetcal: 0,
             gaincal: 0,
-            lock: 0xA5,
+            lock: RegisterLock::default(),
         }
     }
 
@@ -1147,31 +1343,19 @@ impl Config {
         self.gaincal
     }
 
-    pub fn lock(&mut self) {
-        self.lock = 0x0;
-    }
-
-    pub fn unlock(&mut self) {
-        self.lock = 0xA5;
-    }
-
-    pub fn is_locked(&self) -> bool {
-        self.lock != 0xA5
-    }
-
     /// Converts to bytes starting from register address 0x01 up until address 0xD.
     pub(crate) fn to_bytes(&self, result: &mut [u8; 23]) {
-        result[0] = self.config0.0;
-        result[1] = self.config1.0;
-        result[2] = self.config2.0;
-        result[3] = self.config3.0;
-        result[4] = self.irq.0;
-        result[5] = self.mux.to_byte();
-        result[6..9].copy_from_slice(&self.scan.0);
+        self.config0.to_bytes(&mut result[0..1]);
+        self.config1.to_bytes(&mut result[1..2]);
+        self.config2.to_bytes(&mut result[2..3]);
+        self.config3.to_bytes(&mut result[3..4]);
+        self.irq.to_bytes(&mut result[4..5]);
+        self.mux.to_bytes(&mut result[5..6]);
+        self.scan.to_bytes(&mut result[6..9]);
         result[9..12].copy_from_slice(&self.timer.to_be_bytes()[1..]);
         result[12..15].copy_from_slice(&self.offsetcal.to_be_bytes()[1..]);
         result[15..18].copy_from_slice(&self.gaincal.to_be_bytes()[1..]);
-        result[22] = self.lock;
+        self.lock.to_bytes(&mut result[22..23]);
     }
 
     pub(crate) fn from_bytes(bytes: &[u8; 23]) -> Option<Self> {
@@ -1181,15 +1365,25 @@ impl Config {
             config2: RegisterConfig2(bytes[2]),
             config3: RegisterConfig3(bytes[3]),
             irq: RegisterIRQ(bytes[4]),
-            mux: RegisterMux::try_from_byte(bytes[5])?,
+            mux: RegisterMux::try_from_bytes(&bytes[5..6])?,
             scan: RegisterScan([bytes[6], bytes[7], bytes[8]]),
             timer: u32::from_be_bytes([0, bytes[9], bytes[10], bytes[11]]),
             offsetcal: u32::from_be_bytes([0, bytes[12], bytes[13], bytes[14]]),
             gaincal: u32::from_be_bytes([0, bytes[15], bytes[16], bytes[17]]),
-            lock: bytes[22],
+            lock: RegisterLock(bytes[22]),
         })
     }
 
 
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_scan_to_mux() {
+
+    }
+}
