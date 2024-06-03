@@ -7,3 +7,9 @@ description = "Driver crate for the MCP3461, MCP3462, MCP3464, and MCP3561, MCP3
 
 [dependencies]
 embedded-hal = "1.0.0"
+
+log = {version = "0.4.20", optional = true }
+
+
+[features]
+log = ["dep:log"]

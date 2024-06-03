@@ -761,7 +761,7 @@ pub enum IRQMode {
 
 impl BitField for IRQMode {
     const MASK: u8 = 0b0000_1100;
-    const SHIFT: u8 = 6;
+    const SHIFT: u8 = 2;
 
     fn as_u8_unshifted(self) -> u8 {
         self as u8
@@ -1304,6 +1304,11 @@ impl Config {
         result[9..12].copy_from_slice(&self.timer.to_be_bytes()[1..]);
         result[12..15].copy_from_slice(&self.offsetcal.to_be_bytes()[1..]);
         result[15..18].copy_from_slice(&self.gaincal.to_be_bytes()[1..]);
+
+        // reserved registers, should be filled with the specified values
+        result[18..21].copy_from_slice(&[0x90, 0, 0]);
+        result[21..22].copy_from_slice(&[0x30]);
+
         self.lock.to_bytes(&mut result[22..23]);
     }
 

@@ -81,6 +81,10 @@ enum Command {
     Shutdown,
     FullShutdown,
     FullReset,
+
+    /// Can be used to retrieve the status bit
+    DontCare,
+
     StaticRead,
     IncrementalWrite,
     IncrementalRead,
@@ -94,9 +98,10 @@ impl Command {
             Command::Shutdown => 0b110000,
             Command::FullShutdown => 0b110100,
             Command::FullReset => 0b111000,
+            Command::DontCare => 0b1111100,
             Command::StaticRead => 0b01,
-            Command::IncrementalWrite => 0b11,
-            Command::IncrementalRead => 0b10,
+            Command::IncrementalWrite => 0b10,
+            Command::IncrementalRead => 0b11,
         }
     }
 }
@@ -173,9 +178,12 @@ impl<SPI: SpiDevice> MCP356x<SPI> {
     }
 
     fn fast_command(&mut self, command: Command) -> Result<StatusByte, Error<SPI::Error>> {
-        let command_byte = command.to_byte();
+        let command_byte = command.to_byte() | self.addr.cmd_byte();
         let mut read_buffer = [0; 1];
-        self.spi.transfer(&mut read_buffer, &[command_byte | self.addr.cmd_byte()]).map_err(Error::SPIError)?;
+
+        #[cfg(feature = "log")] log::debug!("Fast cmd: {:?}", command_byte);
+
+        self.spi.transfer(&mut read_buffer, &[command_byte]).map_err(Error::SPIError)?;
         Ok(StatusByte(read_buffer[0]))
     }
 
@@ -235,8 +243,8 @@ impl<SPI: SpiDevice> MCP356x<SPI> {
             _ => 4,
         };
         
-        let cmd_byte = [Command::StaticRead.to_byte() | self.addr.cmd_byte() | (0x0 << 2)];
-        self.spi.transfer(&mut read_buffer[0..register_length+1], &cmd_byte).map_err(Error::SPIError)?;
+        let cmd_bytes = [Command::StaticRead.to_byte() | self.addr.cmd_byte() | (0x0 << 2)];
+        self.spi.transfer(&mut read_buffer[0..register_length+1], &cmd_bytes).map_err(Error::SPIError)?;
         let status_byte = StatusByte(read_buffer[0]);
         if !status_byte.is_data_ready() {
             return Err(Error::DataNotReady);
@@ -264,7 +272,7 @@ impl<SPI: SpiDevice> MCP356x<SPI> {
         // The maximum size of a register is 4 bytes
         let mut write_buffer = [0u8; 5];
 
-        if R::WRTIABLE {
+        if !R::WRTIABLE {
             return Err(Error::RegisterReadOnly);
         }
 
@@ -275,6 +283,9 @@ impl<SPI: SpiDevice> MCP356x<SPI> {
         let size = R::size();
         register.to_bytes((&mut write_buffer[1..1+size]).try_into().unwrap());
         write_buffer[0] = self.command_byte::<R>(Command::IncrementalWrite);
+
+
+        #[cfg(feature = "log")] log::debug!("Write register: {:?}", &write_buffer);
 
         self.transfer(write_buffer)
     }
@@ -297,6 +308,8 @@ impl<SPI: SpiDevice> MCP356x<SPI> {
         config.to_bytes((&mut write_buffer[1..24]).try_into().unwrap());
         write_buffer[0] = self.command_byte::<config::RegisterConfig0>(Command::IncrementalWrite);
 
+        #[cfg(feature = "log")] log::debug!("Send config: {:?}", &write_buffer);
+
         let result = self.transfer(write_buffer)?;
         self.config = config;
 
@@ -306,12 +319,26 @@ impl<SPI: SpiDevice> MCP356x<SPI> {
     /// Reads the current configuration from the device and stores it in the struct.
     pub fn read_config(&mut self) -> Result<config::Config, Error<SPI::Error>> {
         let mut read_buffer = [0u8; 24];
-        let write_buffer = [self.command_byte::<config::RegisterConfig0>(Command::IncrementalWrite)];
+        let write_buffer = [self.command_byte::<config::RegisterConfig0>(Command::IncrementalRead)];
 
         self.spi.transfer(&mut read_buffer, &write_buffer).map_err(Error::SPIError)?;
+
+        #[cfg(feature = "log")] log::debug!("Read config: {:?}", &read_buffer);
+
         self.config = Config::from_bytes((&read_buffer[1..24]).try_into().unwrap()).ok_or(Error::ConfigReadError)?;
 
         Ok(self.config.clone())
+    }
+
+    /// Reads a single register
+    pub fn read_register<R: Register>(&mut self) -> Result<Option<R>, Error<SPI::Error>> {
+        let mut read_buffer_full = [0u8; 5];
+        let write_buffer = [Command::StaticRead.to_byte() | self.addr.cmd_byte() | (R::address() << 2)];
+        let read_buf = &mut read_buffer_full[..1 + R::size()];
+
+        self.spi.transfer(read_buf, &write_buffer).map_err(Error::SPIError)?;
+
+        Ok(R::try_from_bytes(&read_buf[1..]))
     }
 
     /// Returns the current configuration of the device, as it is stored in the struct.
