@@ -271,6 +271,32 @@ pub enum OversamplingRatio {
     Ratio98304 = 0b1111,
 }
 
+impl TryFrom<u32> for OversamplingRatio {
+    type Error = &'static str;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        Ok(match value {
+            32 => OversamplingRatio::Ratio32,
+            64 => OversamplingRatio::Ratio64,
+            128 => OversamplingRatio::Ratio128,
+            256 => OversamplingRatio::Ratio256,
+            512 => OversamplingRatio::Ratio512,
+            1024 => OversamplingRatio::Ratio1024,
+            2048 => OversamplingRatio::Ratio2048,
+            4096 => OversamplingRatio::Ratio4096,
+            8192 => OversamplingRatio::Ratio8192,
+            16384 => OversamplingRatio::Ratio16384,
+            20480 => OversamplingRatio::Ratio20480,
+            24576 => OversamplingRatio::Ratio24576,
+            40960 => OversamplingRatio::Ratio40960,
+            49152 => OversamplingRatio::Ratio49152,
+            81920 => OversamplingRatio::Ratio81920,
+            98304 => OversamplingRatio::Ratio98304,
+            _ => return Err("Invalid oversampling ratio. See Table 5-6 in the datasheet for valid values."),
+        })
+    }
+}
+
 impl BitField for OversamplingRatio {
     const MASK: u8 = 0b0011_1100;
     const SHIFT: u8 = 2;
