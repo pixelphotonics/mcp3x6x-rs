@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Driver crate for the MCP3461, MCP3462, MCP3464, and MCP3561, MCP3562, MCP3564 Sigma-Delta ADCs."
+authors = ["Fabian Beutel"]
+
 
 [dependencies]
 embedded-hal = "1.0.0"
