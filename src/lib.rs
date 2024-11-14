@@ -227,6 +227,7 @@ impl<SPI: SpiDevice> MCP356x<SPI> {
 
     /// Reads the ADCDATA register, which returns the latest conversion result.
     /// This function doesn't trigger a conversion, it just reads the register.
+    /// Returns a `DataNotReady` error if the corresponding status bit is not set.
     pub fn read_adc_register_data(&mut self) -> Result<i32, Error<SPI::Error>> {
         let mut read_buffer = [0u8; 5];
 
@@ -254,16 +255,16 @@ impl<SPI: SpiDevice> MCP356x<SPI> {
     }
 
     /// Performs a single-shot conversion with the given MUX setting.
-    /// It is recommended to check for DataNotReady errors and retry reading the ADC data
-    /// by calling read_adc_register_data() in case the data is not yet ready.
-    pub fn single_shot(&mut self, mux: RegisterMux) -> Result<i32, Error<SPI::Error>> {
+    /// Subsequently, the ADC data can be read using a call to the `read_adc_register_data`
+    /// method.
+    pub fn single_shot(&mut self, mux: RegisterMux) -> Result<(), Error<SPI::Error>> {
         if self.config.mux != mux {
             self.write_register(mux)?;
             self.config.mux = mux;
         }
 
         self.fast_command(Command::Conversion)?;
-        self.read_adc_register_data()
+        Ok(())
     }
 
     /// Write to a single register of the device.
